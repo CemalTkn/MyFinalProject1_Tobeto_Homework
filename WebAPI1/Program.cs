@@ -42,8 +42,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// coreModel gibi modülleri eklemek için 
-builder.Services.AddDependencyResolvers(new ICoreModule[] { new CoreModule() });
+// CoreModel gibi modülleri eklemek için, farklý moduleler eklenirse onlarýda 
+builder.Services.AddDependencyResolvers(new ICoreModule[] { new CoreModule() }); //,new ÖrnekModule() gibi ekleyebiliriz.
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
