@@ -8,6 +8,14 @@ using Core.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Core.DependencyResolvers;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using Serilog.Sinks.MSSqlServer;
+using static Serilog.Sinks.MSSqlServer.ColumnOptions;
+using System.Data;
+using System.Security.Claims;
+using Entities.Concrete;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
@@ -24,6 +32,24 @@ builder.Services.AddControllers();
 //builder.Services.AddSingleton<IProductDal, EfProductDal>();
 
 
+Logger log = new LoggerConfiguration()
+    .WriteTo.Console()//WriteTo ile loglama yapacaðýmýz kaynaðý belirtiyoruz yani console'a loglama yap.
+    .WriteTo.File("logs/log.txt")
+    .WriteTo.MSSqlServer(builder.Configuration.GetConnectionString("ETradeC"),
+    sinkOptions: new MSSqlServerSinkOptions { TableName = "Log", AutoCreateSqlTable = true },
+    columnOptions:new ColumnOptions()
+    {
+        Message = { ColumnName = "message" },
+        MessageTemplate = { ColumnName = "message_template" },
+        Level = { ColumnName = "level"},
+        TimeStamp = { ColumnName = "time_stamp" },
+        Exception= { ColumnName = "exception" },
+        LogEvent = { ColumnName = "log_event"}
+    })
+    .CreateLogger();
+
+builder.Host.UseSerilog(log);
+
 
 var tokenOptions = builder.Configuration.GetSection("TokenOptions").Get<TokenOptions>();
 
@@ -38,7 +64,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = tokenOptions.Issuer,
             ValidAudience = tokenOptions.Audience,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = SecurityKeyHelper.CreateSecurityKey(tokenOptions.SecurityKey)
+            IssuerSigningKey = SecurityKeyHelper.CreateSecurityKey(tokenOptions.SecurityKey),
+            NameClaimType = ClaimTypes.Name//Jwt üzerinde Name claime karþýlýk gelen deðeri User.ýdentity.name propertysinden elde edebiliriz.
+            
         };
     });
 
